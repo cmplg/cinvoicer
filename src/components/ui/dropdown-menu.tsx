@@ -63,7 +63,7 @@ function DropdownMenuContent({ className, children, align = "end", ...props }: R
   return (
     <div
       className={cn(
-        "absolute z-50 mt-2 min-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl",
+        "absolute z-50 mt-2 min-w-max overflow-visible rounded-xl border border-slate-200 bg-white shadow-xl",
         align === "start" ? "left-0" : "right-0",
         className
       )}

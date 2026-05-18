@@ -44,10 +44,19 @@ export default function Invoices() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [settings, setSettings] = useState<any>({
+    company_name: 'c-invoicer',
+    logo_url: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: ''
+  });
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetchInvoices();
+    fetchSettings();
   }, []);
 
   const fetchInvoices = async () => {
@@ -60,6 +69,16 @@ export default function Invoices() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      setSettings(data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -219,7 +238,7 @@ export default function Invoices() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="bg-white w-52 p-2 shadow-2xl border-slate-100 rounded-xl">
+                      <DropdownMenuContent align="end" className="bg-white min-w-[12rem] p-2 shadow-2xl border-slate-100 rounded-xl">
                         <div className="px-2 py-1.5 mb-1.5 border-b border-slate-50">
                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manajemen Invoice</p>
                         </div>
@@ -299,8 +318,22 @@ export default function Invoices() {
                    {/* Invoice Branding */}
                    <div className="flex justify-between items-start mb-12">
                       <div>
-                        <h3 className="text-2xl font-black italic text-slate-900 tracking-tighter">c-invoicer</h3>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Professional Billing System</p>
+                        <div className="flex items-center gap-3 mb-3">
+                          {settings.logo_url ? (
+                            <img src={settings.logo_url} alt="Logo Perusahaan" className="h-10 w-10 object-contain rounded-xl" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-black">CI</div>
+                          )}
+                          <div>
+                            <h3 className="text-2xl font-black italic text-slate-900 tracking-tighter">{settings.company_name || 'c-invoicer'}</h3>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{settings.website || 'Billing System'}</p>
+                          </div>
+                        </div>
+                        <div className="text-slate-500 text-[10px] space-y-1">
+                          {settings.address && <p>{settings.address}</p>}
+                          {settings.email && <p>{settings.email}</p>}
+                          {settings.phone && <p>{settings.phone}</p>}
+                        </div>
                       </div>
                       <div className="text-right">
                          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter mb-1">INVOICE</h1>

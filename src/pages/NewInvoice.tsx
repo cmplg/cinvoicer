@@ -5,9 +5,7 @@ import {
   Trash2, 
   Save, 
   ArrowLeft,
-  Calendar as CalendarIcon,
   HelpCircle,
-  Search,
   Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,11 +18,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger 
-} from '@/components/ui/popover';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -110,13 +103,29 @@ export default function NewInvoice() {
     const newItems = items.map(item => {
       if (item.id === id) {
         const updatedItem = { ...item, [field]: value };
-        // Recalculate total for this item
         const subtotal = updatedItem.quantity * updatedItem.unit_price;
         const taxAmount = subtotal * (updatedItem.tax_rate / 100);
         updatedItem.total = subtotal + taxAmount;
         return updatedItem;
       }
       return item;
+    });
+    setItems(newItems);
+  };
+
+  const updateItemDescription = (id: string, description: string) => {
+    const product = products.find((p: any) => p.name === description);
+    const newItems = items.map(item => {
+      if (item.id !== id) return item;
+      const unit_price = product ? parseFloat(product.base_price) || item.unit_price : item.unit_price;
+      const subtotal = item.quantity * unit_price;
+      const taxAmount = subtotal * (item.tax_rate / 100);
+      return {
+        ...item,
+        description,
+        unit_price,
+        total: subtotal + taxAmount,
+      };
     });
     setItems(newItems);
   };
@@ -273,41 +282,21 @@ export default function NewInvoice() {
                       <TableRow key={item.id} className="border-slate-50 hover:bg-slate-50/20 transition-colors h-10">
                         <TableCell className="pl-5 py-2">
                            <div className="flex items-center gap-1">
-                             <Input 
-                              placeholder="Deskripsi item..." 
+                             <div className="flex flex-col gap-1">
+                           <Input 
+                              list={`product-options-${item.id}`} 
+                              placeholder="Pilih atau ketik manual"
                               className="bg-transparent border-none shadow-none focus-visible:ring-0 p-0 h-6 text-xs font-medium"
                               value={item.description}
-                              onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                             />
-                             <Popover>
-                               <PopoverTrigger asChild>
-                                 <Button variant="ghost" size="sm" className="h-5 w-5 p-0 text-slate-300 hover:text-indigo-600">
-                                   <Search className="w-3 h-3" />
-                                 </Button>
-                               </PopoverTrigger>
-                               <PopoverContent className="w-64 p-0 bg-white shadow-xl border-slate-100" align="start">
-                                 <div className="p-2 border-b border-slate-50 bg-slate-50/50">
-                                   <p className="text-[10px] font-bold text-slate-400 uppercase">Pilih dari Katalog</p>
-                                 </div>
-                                 <div className="max-h-48 overflow-y-auto">
-                                   {products.length > 0 ? products.map((p: any) => (
-                                     <button 
-                                       key={p.id}
-                                       onClick={() => pickProduct(item.id, p)}
-                                       className="w-full text-left px-3 py-2 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-0 group"
-                                     >
-                                       <div className="flex justify-between items-center">
-                                         <span className="text-xs font-bold text-slate-700 group-hover:text-indigo-600">{p.name}</span>
-                                         <span className="text-[10px] text-slate-400">{new Intl.NumberFormat('id-ID').format(p.base_price)}</span>
-                                       </div>
-                                       {p.description && <p className="text-[9px] text-slate-400 line-clamp-1">{p.description}</p>}
-                                     </button>
-                                   )) : (
-                                     <div className="p-4 text-center text-xs text-slate-300 italic">Katalog kosong</div>
-                                   )}
-                                 </div>
-                               </PopoverContent>
-                             </Popover>
+                              onChange={(e) => updateItemDescription(item.id, e.target.value)}
+                            />
+                            <datalist id={`product-options-${item.id}`}>
+                              {products.map((product: any) => (
+                                <option key={product.id} value={product.name} />
+                              ))}
+                            </datalist>
+                            <p className="text-[9px] text-slate-400">Pilih layanan dari daftar atau ketik manual.</p>
+                          </div>
                            </div>
                         </TableCell>
                         <TableCell className="py-2">
@@ -338,9 +327,16 @@ export default function NewInvoice() {
                            {new Intl.NumberFormat('id-ID').format(item.total)}
                         </TableCell>
                         <TableCell className="pr-5 py-2 text-right">
-                           <Button variant="ghost" size="sm" onClick={() => removeItem(item.id)} disabled={items.length === 1} className="text-slate-200 hover:text-rose-500 hover:bg-rose-50 p-0 h-6 w-6">
-                              <Trash2 className="w-3.5 h-3.5" />
-                           </Button>
+                           <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeItem(item.id)}
+                          disabled={items.length === 1}
+                          title="Hapus item"
+                          className="text-slate-500 hover:text-rose-600 hover:bg-rose-50 p-0 h-6 w-6"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                         </TableCell>
                       </TableRow>
                     ))}
