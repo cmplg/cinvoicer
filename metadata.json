@@ -1,0 +1,8 @@
+{
+  "name": "c-invoicer",
+  "description": "A professional and elegant invoice management system with customer tracking, reports, and incoming/outgoing invoice records.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
