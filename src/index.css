@@ -129,3 +129,15 @@
     @apply bg-background text-foreground antialiased;
   }
 }
+
+/* Print styles for full A4 export */
+@media print {
+  @page { size: A4; margin: 10mm; }
+  html, body { height: 100%; }
+  body * { visibility: hidden; }
+  #printable-invoice, #printable-invoice * { visibility: visible; }
+  #printable-invoice { position: absolute; left: 0; top: 0; width: 210mm; box-shadow: none !important; border-radius: 0 !important; }
+  /* remove backgrounds/shadows for print clarity */
+  .shadow-xl, .shadow-md, .shadow-lg { box-shadow: none !important; }
+  .rounded-xl, .rounded-2xl, .rounded-lg { border-radius: 0 !important; }
+}

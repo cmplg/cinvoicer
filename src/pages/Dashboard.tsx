@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -78,7 +79,7 @@ export default function Dashboard() {
 
       {/* Summary Cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <Card className="border-none shadow-md bg-white">
+        <Card onClick={() => window.location.href = '/invoices?status=paid'} className="border-none shadow-md bg-white cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between pb-1 px-3 sm:px-4 py-3">
             <CardTitle className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Cair</CardTitle>
             <div className="bg-emerald-50 p-1.5 rounded-md">
@@ -90,7 +91,7 @@ export default function Dashboard() {
             <p className="text-[9px] text-emerald-600 mt-0.5 font-bold">Lunas Terbayar</p>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-md bg-white">
+        <Card onClick={() => window.location.href = '/invoices?filter=outstanding'} className="border-none shadow-md bg-white cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between pb-1 px-3 sm:px-4 py-3">
             <CardTitle className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Outstanding</CardTitle>
             <div className="bg-amber-50 p-1.5 rounded-md">
@@ -102,7 +103,7 @@ export default function Dashboard() {
             <p className="text-[9px] text-amber-600 mt-0.5 font-bold">Dalam Penagihan</p>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-md bg-white">
+        <Card onClick={() => window.location.href = '/customers'} className="border-none shadow-md bg-white cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between pb-1 px-3 sm:px-4 py-3">
             <CardTitle className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Klien</CardTitle>
             <div className="bg-indigo-50 p-1.5 rounded-md">
@@ -114,7 +115,7 @@ export default function Dashboard() {
             <p className="text-[9px] text-indigo-600 mt-0.5 font-bold">Aktif Terdaftar</p>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-md bg-white">
+        <Card onClick={() => window.location.href = '/invoices?filter=sent'} className="border-none shadow-md bg-white cursor-pointer">
           <CardHeader className="flex flex-row items-center justify-between pb-1 px-3 sm:px-4 py-3">
             <CardTitle className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Aktif Invoice</CardTitle>
             <div className="bg-slate-50 p-1.5 rounded-md">

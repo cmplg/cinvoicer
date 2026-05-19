@@ -58,12 +58,26 @@ DropdownMenuTrigger.displayName = "DropdownMenuTrigger"
 
 function DropdownMenuContent({ className, children, align = "end", ...props }: React.HTMLAttributes<HTMLDivElement> & { align?: "start" | "end" }) {
   const context = React.useContext(DropdownMenuContext)
+  const ref = React.useRef<HTMLDivElement | null>(null)
+  const [positionTop, setPositionTop] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!context?.open) return
+    const parent = ref.current?.parentElement
+    if (!parent) return
+    const rect = parent.getBoundingClientRect()
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight
+    setPositionTop((viewportHeight - rect.bottom) < 200)
+  }, [context?.open])
+
   if (!context?.open) return null
 
   return (
     <div
+      ref={ref}
       className={cn(
-        "absolute z-50 mt-2 min-w-max overflow-visible rounded-xl border border-slate-200 bg-white shadow-xl",
+        "absolute z-50 min-w-max overflow-visible rounded-xl border border-slate-200 bg-white shadow-xl",
+        positionTop ? "bottom-full mb-2" : "mt-2",
         align === "start" ? "left-0" : "right-0",
         className
       )}

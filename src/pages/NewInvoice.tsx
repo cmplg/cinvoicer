@@ -39,6 +39,8 @@ export default function NewInvoice() {
   const [products, setProducts] = useState([]);
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-6)}`);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [customerNameInput, setCustomerNameInput] = useState('');
+  const [customerForm, setCustomerForm] = useState({ name: '', email: '', phone: '', address: '', is_vendor: false });
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [type, setType] = useState('sale');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
@@ -63,6 +65,15 @@ export default function NewInvoice() {
       .then(res => res.json())
       .then(data => setProducts(data));
   }, []);
+
+  useEffect(() => {
+    // when selecting customer by id, populate customer form
+    const c = customers.find((x: any) => x.id?.toString() === selectedCustomerId);
+    if (c) {
+      setCustomerForm({ name: c.name || '', email: c.email || '', phone: c.phone || '', address: c.address || '', is_vendor: !!c.is_vendor });
+      setCustomerNameInput(c.name || '');
+    }
+  }, [selectedCustomerId, customers]);
 
   const addItem = () => {
     setItems([...items, { 
@@ -134,15 +145,38 @@ export default function NewInvoice() {
   const calculateTax = () => items.reduce((sum, item) => sum + (item.quantity * item.unit_price * (item.tax_rate / 100)), 0);
   const calculateTotal = () => calculateSubtotal() + calculateTax();
 
+  const ensureCustomerExists = async () => {
+    if (selectedCustomerId) return parseInt(selectedCustomerId);
+    const existing = customers.find((c: any) => c.name?.toLowerCase() === customerNameInput.trim().toLowerCase());
+    if (existing) return existing.id;
+    const payload = { ...customerForm, name: customerNameInput || customerForm.name };
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCustomers(prev => [...prev, data]);
+        return data.id;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    return null;
+  };
+
   const handleSave = async () => {
-    if (!selectedCustomerId) {
-       toast.error('Mohon pilih pelanggan.');
-       return;
+    const customerId = await ensureCustomerExists();
+    if (!customerId) {
+      toast.error('Mohon tambahkan atau pilih pelanggan.');
+      return;
     }
     
     const payload = {
       invoice_number: invoiceNumber,
-      customer_id: parseInt(selectedCustomerId),
+      customer_id: customerId,
       issue_date: issueDate,
       due_date: dueDate || null,
       status: 'sent',
@@ -218,16 +252,38 @@ export default function NewInvoice() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="customer" className="text-[10px] font-bold text-slate-400 uppercase">Pelanggan / Vendor</Label>
-                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                  <SelectTrigger className="h-8 text-xs bg-slate-50 border-slate-100">
-                    <SelectValue placeholder="Pilih pelanggan..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    {customers.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id.toString()} className="text-xs">{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="customer"
+                  placeholder="Pilih pelanggan atau ketik nama baru"
+                  list="customer-options"
+                  className="h-8 text-xs bg-slate-50 border-slate-100"
+                  value={customerNameInput}
+                  onChange={(e) => { setCustomerNameInput(e.target.value); setSelectedCustomerId(''); setCustomerForm({...customerForm, name: e.target.value}); }}
+                />
+                <datalist id="customer-options">
+                  {customers.map((c: any) => (
+                    <option key={c.id} value={c.name} />
+                  ))}
+                </datalist>
+                <p className="text-[9px] text-slate-400">Ketik untuk menambah pelanggan baru secara otomatis.</p>
+              </div>
+
+              {/* Inline customer info form */}
+              <div className="col-span-1 sm:col-span-2 grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Email Pelanggan</Label>
+                    <Input value={customerForm.email} onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})} className="h-8 text-xs bg-slate-50 border-slate-100" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase">Telepon</Label>
+                    <Input value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})} className="h-8 text-xs bg-slate-50 border-slate-100" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Alamat</Label>
+                  <Input value={customerForm.address} onChange={(e) => setCustomerForm({...customerForm, address: e.target.value})} className="h-8 text-xs bg-slate-50 border-slate-100" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div className="space-y-1">
@@ -235,7 +291,7 @@ export default function NewInvoice() {
                   <Input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className="h-8 text-xs bg-slate-50 border-slate-100" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Jatuh Tempo</Label>
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Tanggal Acara</Label>
                   <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="h-8 text-xs bg-slate-50 border-slate-100" />
                 </div>
               </div>
@@ -283,19 +339,35 @@ export default function NewInvoice() {
                         <TableCell className="pl-5 py-2">
                            <div className="flex items-center gap-1">
                              <div className="flex flex-col gap-1">
-                           <Input 
-                              list={`product-options-${item.id}`} 
-                              placeholder="Pilih atau ketik manual"
-                              className="bg-transparent border-none shadow-none focus-visible:ring-0 p-0 h-6 text-xs font-medium"
-                              value={item.description}
-                              onChange={(e) => updateItemDescription(item.id, e.target.value)}
-                            />
-                            <datalist id={`product-options-${item.id}`}>
-                              {products.map((product: any) => (
-                                <option key={product.id} value={product.name} />
-                              ))}
-                            </datalist>
-                            <p className="text-[9px] text-slate-400">Pilih layanan dari daftar atau ketik manual.</p>
+                             <Select value={products.find((p:any)=>p.name===item.description) ? item.description : (item.description ? '__manual__' : '')} onValueChange={(val)=>{
+                               if (val === '__manual__') {
+                                 updateItem(item.id, 'description', '');
+                               } else {
+                                 const p = products.find((pr:any)=>pr.name===val);
+                                 if (p) pickProduct(item.id, p);
+                               }
+                             }}>
+                               <SelectTrigger className="h-6 text-xs bg-transparent border-none p-0 text-left">
+                                 <SelectValue placeholder="Pilih item..." />
+                               </SelectTrigger>
+                               <SelectContent className="bg-white">
+                                 {products.map((product: any) => (
+                                   <SelectItem key={product.id} value={product.name} className="text-xs">{product.name}</SelectItem>
+                                 ))}
+                                 <SelectItem value="__manual__" className="text-xs">-- Masukkan Manual --</SelectItem>
+                               </SelectContent>
+                             </Select>
+                             {(!products.find((p:any)=>p.name===item.description)) && (
+                               <>
+                                 <Input
+                                   placeholder="Deskripsi manual"
+                                   value={item.description}
+                                   onChange={(e) => updateItemDescription(item.id, e.target.value)}
+                                   className="bg-transparent border-none shadow-none focus-visible:ring-0 p-0 h-6 text-xs font-medium"
+                                 />
+                                 <p className="text-[9px] text-slate-400">Pilih layanan dari daftar atau masukkan manual.</p>
+                               </>
+                             )}
                           </div>
                            </div>
                         </TableCell>

@@ -76,8 +76,17 @@ async function initDb() {
         email TEXT UNIQUE NOT NULL,
         name TEXT,
         role TEXT DEFAULT 'user', -- superuser, admin, user
+        password TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Add password column to users if not exists
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='password') THEN
+          ALTER TABLE users ADD COLUMN password TEXT;
+        END IF;
+      END $$;
 
       CREATE TABLE IF NOT EXISTS payment_methods (
         id SERIAL PRIMARY KEY,

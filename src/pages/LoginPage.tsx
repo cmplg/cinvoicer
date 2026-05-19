@@ -13,32 +13,32 @@ interface LoginPageProps {
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // In a real app, this would be a full auth request
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      toast.error('Silakan masukkan email Anda');
+    if (!email || !password) {
+      toast.error('Email dan password wajib diisi');
       return;
     }
 
     setLoading(true);
     try {
-      // Fetch users to see if they exist and what their role is
       const res = await fetch('/api/users');
       const users = await res.json();
       
       const user = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
       
-      if (user) {
+      if (!user) {
+        toast.error('Akun tidak ditemukan. Silakan hubungi Superuser.');
+      } else if (user.password === password) {
         toast.success(`Selamat datang kembali, ${user.name}!`);
-        // Simulate a small delay for a smooth transition
         setTimeout(() => {
           onLogin(user);
         }, 800);
       } else {
-        toast.error('Akun tidak ditemukan. Silakan hubungi Superuser.');
+        toast.error('Email atau password salah.');
       }
     } catch (error) {
       toast.error('Terjadi kesalahan saat masuk');
@@ -133,15 +133,16 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </p>
             </div>
 
-            <div className="space-y-1.5 opacity-50 cursor-not-allowed">
-              <Label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Password (Coming Soon)</Label>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                 <Input 
-                  disabled
                   type="password" 
                   placeholder="••••••••"
-                  className="pl-10 h-11 bg-slate-100 border-transparent text-sm"
+                  className="pl-10 h-11 bg-slate-50 border-slate-100 focus:ring-indigo-500 transition-all text-sm font-medium"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
             </div>

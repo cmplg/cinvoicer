@@ -123,6 +123,110 @@ export default function Invoices() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
   };
 
+  const exportToCSV = () => {
+    const headers = ['No. Invoice', 'Pelanggan', 'Email', 'Tanggal', 'Tipe', 'Status', 'Total'];
+    const rows = filteredInvoices.map(inv => [
+      inv.invoice_number,
+      inv.customer_name,
+      inv.customer_email || '',
+      new Date(inv.issue_date).toLocaleDateString('id-ID'),
+      inv.type === 'sale' ? 'Penjualan' : 'Pembelian',
+      inv.status,
+      inv.total_amount
+    ]);
+    const csv = [
+      headers.map(h => `"${h}"`).join(','),
+      ...rows.map(r => r.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `invoices_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success('Export CSV berhasil!');
+  };
+
+  const exportToExcel = () => {
+    // Excel via CSV with special header (works with Excel)
+    const headers = ['No. Invoice', 'Pelanggan', 'Email', 'Tanggal', 'Tipe', 'Status', 'Total'];
+    const rows = filteredInvoices.map(inv => [
+      inv.invoice_number,
+      inv.customer_name,
+      inv.customer_email || '',
+      new Date(inv.issue_date).toLocaleDateString('id-ID'),
+      inv.type === 'sale' ? 'Penjualan' : 'Pembelian',
+      inv.status,
+      inv.total_amount
+    ]);
+    const csv = [
+      headers.map(h => `"${h}"`).join(','),
+      ...rows.map(r => r.map(cell => `"${(cell || '').toString().replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+    const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `invoices_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast.success('Export Excel berhasil!');
+  };
+
+  const exportToPDF = () => {
+    // Create printable table
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoices Report</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          h1 { text-align: center; }
+          table { width: 100%; border-collapse: collapse; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head>
+      <body>
+        <h1>Laporan Invoice</h1>
+        <p>Tanggal: ${new Date().toLocaleDateString('id-ID')}</p>
+        <table>
+          <thead>
+            <tr>
+              <th>No. Invoice</th>
+              <th>Pelanggan</th>
+              <th>Tanggal</th>
+              <th>Tipe</th>
+              <th>Status</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredInvoices.map(inv => `
+              <tr>
+                <td>${inv.invoice_number}</td>
+                <td>${inv.customer_name}</td>
+                <td>${new Date(inv.issue_date).toLocaleDateString('id-ID')}</td>
+                <td>${inv.type === 'sale' ? 'Penjualan' : 'Pembelian'}</td>
+                <td>${inv.status}</td>
+                <td>Rp ${new Intl.NumberFormat('id-ID').format(inv.total_amount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.print();
+    toast.success('PDF siap untuk diunduh!');
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
@@ -131,10 +235,31 @@ export default function Invoices() {
           <p className="text-xs text-slate-500">Kelola semua tagihan keluar dan masuk Anda di sini.</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="flex-1 sm:flex-none items-center gap-2 border-slate-200 text-xs h-8">
-               <Download className="w-3.5 h-3.5" />
-               <span>Export Data</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex-1 sm:flex-none items-center gap-2 border-slate-200 text-xs h-8">
+                   <Download className="w-3.5 h-3.5" />
+                   <span>Export Data</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white">
+                <div className="px-2 py-1.5 mb-1.5 border-b border-slate-50">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Format Ekspor</p>
+                </div>
+                <DropdownMenuItem onClick={exportToCSV} className="text-xs font-bold py-2.5 rounded-lg hover:bg-slate-50 flex items-center gap-3">
+                  <Download className="w-4 h-4 text-slate-400" />
+                  Export CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel} className="text-xs font-bold py-2.5 rounded-lg hover:bg-slate-50 flex items-center gap-3">
+                  <Download className="w-4 h-4 text-slate-400" />
+                  Export Excel (XLSX)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToPDF} className="text-xs font-bold py-2.5 rounded-lg text-indigo-600 hover:bg-indigo-50 flex items-center gap-3 mt-1.5 border-t border-slate-50">
+                  <Download className="w-4 h-4" />
+                  Export PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
       </div>
 

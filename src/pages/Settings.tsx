@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   AlertCircle,
   CreditCard,
-  Plus
+  Plus,
+  Lock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,8 +38,9 @@ export default function Settings({ currentUser }: SettingsProps) {
   });
   const [users, setUsers] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
-  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'user' });
+  const [newUser, setNewUser] = useState({ email: '', name: '', role: 'user', password: '' });
   const [newPaymentMethod, setNewPaymentMethod] = useState({ name: '', details: '' });
+  const [editingUserPassword, setEditingUserPassword] = useState<{id: number, newPassword: string} | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -83,8 +85,12 @@ export default function Settings({ currentUser }: SettingsProps) {
   };
 
   const handleCreateUser = async () => {
-    if (!newUser.email || !newUser.name) {
-      toast.error('Email dan nama wajib diisi');
+    if (!newUser.email || !newUser.name || !newUser.password) {
+      toast.error('Email, nama, dan password wajib diisi');
+      return;
+    }
+    if (newUser.password.length < 6) {
+      toast.error('Password minimal 6 karakter');
       return;
     }
     try {
@@ -95,11 +101,34 @@ export default function Settings({ currentUser }: SettingsProps) {
       });
       if (res.ok) {
         toast.success('User baru berhasil ditambahkan');
-        setNewUser({ email: '', name: '', role: 'user' });
+        setNewUser({ email: '', name: '', role: 'user', password: '' });
         fetchData();
       }
     } catch (error) {
       toast.error('Gagal menambahkan user');
+    }
+  };
+
+  const handleUpdateUserPassword = async (userId: number, newPassword: string) => {
+    if (!newPassword || newPassword.length < 6) {
+      toast.error('Password minimal 6 karakter');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/users/${userId}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword })
+      });
+      if (res.ok) {
+        toast.success('Password user berhasil direset');
+        setEditingUserPassword(null);
+        fetchData();
+      } else {
+        toast.error('Gagal mereset password');
+      }
+    } catch (error) {
+      toast.error('Gagal mereset password');
     }
   };
 
@@ -279,6 +308,20 @@ export default function Settings({ currentUser }: SettingsProps) {
                     <option value="superuser">Superuser</option>
                   </select>
                 </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-bold text-slate-400 uppercase">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 pointer-events-none" />
+                    <Input 
+                      type="password"
+                      placeholder="Minimal 6 karakter"
+                      value={newUser.password} 
+                      onChange={e => setNewUser({...newUser, password: e.target.value})}
+                      className="pl-10 bg-slate-50/50 border-slate-100 text-xs h-9"
+                    />
+                  </div>
+                  <p className="text-[9px] text-slate-400">Password akan digunakan saat login.</p>
+                </div>
                 <Button onClick={handleCreateUser} className="w-full bg-slate-900 hover:bg-slate-800 text-xs h-9 gap-2 mt-2">
                   <UserPlus className="w-3.5 h-3.5" />
                   Tambah Akun
@@ -318,16 +361,46 @@ export default function Settings({ currentUser }: SettingsProps) {
                                 {u.role}
                               </Badge>
                             </TableCell>
-                            <TableCell className="pr-6 text-right">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                disabled={u.email === currentUser.email}
-                                onClick={() => handleDeleteUser(u.id)}
-                                className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
+                            <TableCell className="pr-6 text-right flex items-center justify-end gap-2">
+                              {editingUserPassword?.id === u.id ? (
+                                <div className="flex gap-1 items-center">
+                                  <Input 
+                                    type="password"
+                                    placeholder="Password baru"
+                                    value={editingUserPassword.newPassword}
+                                    onChange={(e) => setEditingUserPassword({...editingUserPassword, newPassword: e.target.value})}
+                                    className="h-7 text-xs w-32"
+                                  />
+                                  <Button size="sm" onClick={() => handleUpdateUserPassword(u.id, editingUserPassword.newPassword)} className="h-7 text-xs bg-indigo-600">
+                                    Simpan
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={() => setEditingUserPassword(null)} className="h-7 text-xs">
+                                    Batal
+                                  </Button>
+                                </div>
+                              ) : (
+                                <>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    disabled={u.email === currentUser.email}
+                                    onClick={() => setEditingUserPassword({id: u.id, newPassword: ''})}
+                                    className="h-7 px-2 text-xs text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                    title="Reset password"
+                                  >
+                                    <Lock className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    disabled={u.email === currentUser.email}
+                                    onClick={() => handleDeleteUser(u.id)}
+                                    className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </Button>
+                                </>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
